@@ -15,7 +15,13 @@ Attributions
 
 This visualization was developed with help from Brandon Liu: [web](http://bdon.org)/[github](http://www.github.com/bdon).
 
+
 Contact Information
 -------------------
 
 Questions/Comments? - [labs@quantifiedself.com](mailto:labs@quantifiedself.com) and [@quantifiedself](http://www.twitter.com/quantifiedself)
+
+Copyright
+_________
+
+Copyright (c) 2014 Quantified Self labs. See [LICENSE](https://github.com/qslabs/Mapping-Mood/blob/master/LICENSE) for details. 
