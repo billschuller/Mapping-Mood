@@ -1,0 +1,184 @@
+<!doctype html>
+<html class="no-js" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mood and Location - Quantified Self Visualization Project</title>
+    <link rel="stylesheet" href="css/foundation.css" />
+    <link rel="stylesheet" href="css/MarkerCluster.css" />
+    <link rel="stylesheet" href="css/MarkerCluster.Default.css" />
+    <link rel="stylesheet" href="css/leaflet.css" />
+    <script src="js/modernizr.js"></script>
+    <script src="js/leaflet.js"></script>
+    <script src="js/leaflet.markercluster.js"></script>
+  </head>
+  <body>
+      <style>
+      #map_sfba { 
+        height: 280px; 
+        width: 100%; 
+      }
+      #map_dallas { 
+        height: 280px; 
+        width: 100%;
+      }
+    </style>
+    <div class="row">
+      <div class="large-12 columns">
+        <h3>Quantified Self - Visualization Project</h3>
+        <ul class="breadcrumbs">
+        <li><a href="/visproject">Home</a></li>
+        <li class="current"><a href="#">MOOD AND LOCATION</a></li>
+      </ul>
+      </div>
+    </div>
+    <div class="row">
+      <div class="large-12 columns">
+        <h2>Mood and Location</h2>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="large-12 columns">
+        <div id="map_sfba"></div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="large-12 columns">
+        <div id="bloodpressure_chart">
+        </div> 
+      </div>
+    </div>
+    
+    <style>
+      .axis path,
+      .axis line {
+        fill: none;
+        stroke: #aaa;
+        shape-rendering: crispEdges;
+      }
+      .brush .extent {
+        fill-opacity: .5;
+        fill: steelblue;
+        stroke: white;
+        stroke-opacity: 0.5;
+        shape-rendering: crispEdges;
+      }
+
+      .moodgroup {
+        fill: steelblue;
+      }
+      .moodgroup .selected {
+        fill: red;
+      }
+    </style>
+    <script src="js/jquery.js"></script>
+    <script src="js/foundation.min.js"></script>
+    <script src="js/d3.v3.min.js"></script>
+    <script>
+      var osmAttr = '&copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>';
+      var map_sfba = L.map('map_sfba');
+          L.tileLayer('http://{s}.tile.cloudmade.com/aa0e217a6d1d4c6a847dbb5de74b0227/997/256/{z}/{x}/{y}.png', {
+          attribution: 'Map data ' + osmAttr + ', Imagery &copy; <a href="http://cloudmade.com">CloudMade</a>',
+          maxZoom: 18
+      }).addTo(map_sfba);
+
+
+      var timeScale = d3.time.scale().domain([new Date('3/28/2013'),new Date('1/9/2014')]).range([80,960]);
+      var moodScale = d3.scale.linear().domain([1,10]).range([160,20]);
+      var svg0 = d3.select("#bloodpressure_chart").append("svg:svg")
+                  .attr({"width":970,"height":200});
+
+      var axis = d3.svg.axis().scale(timeScale).orient("bottom");
+      var yAxis = d3.svg.axis().scale(moodScale).orient("left");
+
+      var mainChartWAxis = svg0.append("g").attr("transform","translate(0,0)")
+      mainChartWAxis.append("g")
+        .attr("transform", "translate(0,170)")
+        .attr("class", "time axis")
+      svg0.selectAll(".time.axis").call(axis);
+      mainChartWAxis.append("g")
+        .attr("transform", "translate(70,0)")
+        .attr("class", "moodAxis axis")
+      svg0.selectAll(".moodAxis.axis").call(yAxis);
+  
+      svg0.append("text").text("Mood").attr("x",0).attr("y",100);
+      var moodGroup = svg0.append("g").attr("class","moodgroup");
+
+      var markers_sf = L.markerClusterGroup();
+
+      // svg brush
+      var brush = d3.svg.brush().x(timeScale).y(moodScale).extent([[new Date('3/28/2013'),new Date('1/9/2014')],[0,5]]).on("brushstart", brushstart).on("brushend", brushend);
+      var brushg = svg0.append("g").attr("class","brush").call(brush);
+      function brushstart() {}
+      var data = [];
+      var filtered_data = [];
+      function brushend() {
+        extent = brush.extent();
+
+        d3.selectAll(".selected").classed("selected", false);
+        // highlight stuff 
+        moodGroup.selectAll(".mood").classed("selected", function(d) {
+          var date = new Date(d.properties.time);
+          var rating = d.properties.rating;
+          var tmp = date >= extent[0][0] && date <= extent[1][0] &&
+            rating >= extent[0][1] && rating <= extent[1][1];
+          return tmp;
+        });
+  
+        filtered_data.features = data.features.filter(function(d) { 
+          var date = new Date(d.properties.time);
+          var rating = d.properties.rating;
+          return date >= extent[0][0] && date <= extent[1][0] &&
+            rating >= extent[0][1] && rating <= extent[1][1];
+        });
+        render();
+      }
+
+
+      var bleeper = svg0.append("circle").style("stroke", "magenta").style("fill", "none").attr("r", 2).style("stroke-opacity",0).style("stroke-width", 3);
+
+      markers_sf.on("click", function(a) {
+        var properties = a.layer.feature.properties;
+        bleeper.attr("cx", timeScale(new Date(properties.time)));
+        bleeper.attr("cy", moodScale(properties.rating));
+        bleeper.attr("r",2).style("stroke-opacity",1.0).transition().delay(0).duration(800).attr("r", 50).style("stroke-opacity",0);
+      });
+
+      function render() {
+        markers_sf.clearLayers();
+        var geoJsonLayer1 = L.geoJson(filtered_data, {
+                        onEachFeature: function (feature, layer) {
+                          layer.bindPopup("Mood Rating " + feature.properties.rating.toString() + ": " + feature.properties.tags );
+                        }
+                });
+        markers_sf.addLayer(geoJsonLayer1);
+        map_sfba.addLayer(markers_sf);
+        map_sfba.fitBounds(markers_sf.getBounds());
+      }
+
+      d3.json('mood.geojson', function(json) {
+        data = json;
+        filtered_data = {'type':'FeatureCollection','features':data.features}
+        render();
+
+        moodGroup.selectAll(".mood").data(data.features)
+          .enter().append("circle").attr("class","mood")
+          .attr("r",4)
+          .style("stroke","black")
+          .style("stroke-width","1.5px")
+          .attr("cy", function(d) { return moodScale(d.properties.rating); })
+          .attr("cx", function(d) { return timeScale(new Date(d.properties.time)); })
+      })
+    </script>
+    <!-- kk Google Analytics -->
+    <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+    _uacct = "UA-71316-1";
+    urchinTracker();
+    </script>
+    <!-- kk-->
+  </body>
+</html>
+
