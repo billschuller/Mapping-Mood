@@ -1,4 +1,4 @@
-Missing-Data-Visualization
+Mapping Mood
 ==========================
 
 This D3 visualization focuses on exposing location patterns in data. It exposes the geotagged (lat/long) data along with a data value and associated tags. 
